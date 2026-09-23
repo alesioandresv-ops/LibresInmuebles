@@ -1,0 +1,4 @@
+# Dependencias de desarrollo/test (instalar localmente) — NUNCA en producción
+-r requirements.txt
+pytest==8.3.4
+httpx==0.28.1
