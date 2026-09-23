@@ -1,0 +1,50 @@
+services:
+  - type: web
+    name: libreinmuebles-api
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: APP_ENV
+        value: prod
+      - key: DATABASE_URL
+        sync: false
+      - key: SECRET_KEY
+        sync: false
+      - key: JWT_ALGORITHM
+        value: HS256
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: "720"
+      - key: CORS_ORIGINS
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: UPLOAD_DIR
+        value: uploads
+      - key: MAX_UPLOAD_MB
+        value: "8"
+      - key: STAFF_EMAILS
+        sync: false
+      - key: SMTP_HOST
+        value: ""
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        value: ""
+      - key: SMTP_PASSWORD
+        value: ""
+      - key: SMTP_FROM
+        value: "LibreInmuebles <no-reply@libreinmuebles.com.ar>"
+      - key: SMTP_TLS
+        value: "true"
+      - key: RATE_LIMIT_ENABLED
+        value: "true"
+      - key: RATE_LIMIT_LOGIN_PER_MINUTE
+        value: "10"
+      - key: RATE_LIMIT_REGISTER_PER_MINUTE
+        value: "5"
+      - key: LOG_LEVEL
+        value: INFO

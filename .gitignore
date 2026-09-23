@@ -1,0 +1,26 @@
+# LibreInmuebles — dueños directos, sin intermediarios
+
+# Entornos
+backend/.venv/
+*.pyc
+__pycache__/
+*.db
+*.sqlite3
+
+# Config sensible (copiar .env.example -> .env)
+.env
+
+# Uploads de imágenes
+backend/uploads/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env.local
+frontend/dev.log
+
+# Editor / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
