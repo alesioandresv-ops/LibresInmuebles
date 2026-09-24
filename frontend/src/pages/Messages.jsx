@@ -27,9 +27,11 @@ export default function Messages() {
   const [sendingReplyId, setSendingReplyId] = useState(null);
   const [replyError, setReplyError] = useState(null);
   const requestSeq = useRef(0);
+  const pageRef = useRef(1);
 
   const load = useCallback(
     async (page = 1) => {
+      pageRef.current = page;
       const seq = ++requestSeq.current;
       setLoading(true);
       setError(null);
@@ -52,6 +54,25 @@ export default function Messages() {
   useEffect(() => {
     load(1);
   }, [load]);
+
+  const silentRefresh = useCallback(async () => {
+    if (document.visibilityState === "hidden") return;
+    const seq = requestSeq.current;
+    try {
+      const fetcher = tab === "inbox" ? getInbox : getSent;
+      const res = await fetcher({ page: pageRef.current, limit: 20 });
+      if (seq !== requestSeq.current) return;
+      setData(res);
+      setError(null);
+    } catch {
+      // silencioso: el polling no debe molestar si falla una pasada
+    }
+  }, [tab]);
+
+  useEffect(() => {
+    const id = setInterval(silentRefresh, 10000);
+    return () => clearInterval(id);
+  }, [silentRefresh]);
 
   async function handleOpen(inquiry) {
     if (tab === "inbox" && !inquiry.is_read) {
@@ -84,6 +105,7 @@ export default function Messages() {
       setReplyDrafts((d) => ({ ...d, [inquiryId]: "" }));
       const thread = await getInquiryThread(inquiryId);
       setThreads((t) => ({ ...t, [inquiryId]: thread }));
+      silentRefresh();
     } catch (e) {
       setReplyError(e.message ?? "No se pudo enviar la respuesta.");
     } finally {
