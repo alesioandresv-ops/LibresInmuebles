@@ -143,12 +143,11 @@ export default function Messages() {
               return (
                 <div
                   key={inq.id}
-                  className={`bg-white rounded-xl border p-4 cursor-pointer transition ${
+                  className={`bg-white rounded-xl border p-4 transition ${
                     open ? "border-brand-500 shadow-sm" : "border-gray-200 hover:border-brand-300"
                   }`}
-                  onClick={() => handleOpen(inq)}
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 cursor-pointer" onClick={() => handleOpen(inq)}>
                     {inq.property_image ? (
                       <img src={assetUrl(inq.property_image)} alt="" className="w-14 h-14 rounded-lg object-cover shrink-0" />
                     ) : (
