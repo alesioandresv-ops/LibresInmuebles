@@ -20,3 +20,23 @@ class Inquiry(Base):
 
     property: Mapped["Property"] = relationship(back_populates="inquiries")
     sender: Mapped["User"] = relationship(back_populates="sent_inquiries")
+    replies: Mapped[list["InquiryReply"]] = relationship(
+        back_populates="inquiry", cascade="all, delete-orphan", order_by="InquiryReply.created_at, InquiryReply.id"
+    )
+
+
+class InquiryReply(Base):
+    """Respuesta dentro de una conversación de consulta (chat in-app)."""
+
+    __tablename__ = "inquiry_replies"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    inquiry_id: Mapped[int] = mapped_column(
+        ForeignKey("inquiries.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    sender_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    message: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    inquiry: Mapped["Inquiry"] = relationship(back_populates="replies")
+    sender: Mapped["User"] = relationship()

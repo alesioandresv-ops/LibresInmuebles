@@ -77,14 +77,30 @@ Inmueble/
 - [x] **Fase 5 — Preparación para producción: stack 100% gratis (Render + Supabase + Vercel).** Backend: `backend/Procfile` (`alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}` — migraciones al arrancar en cada deploy); endpoint público `GET /health` para el health check de Render (+1 test); `backend/.env.example.prod` listo. Frontend: `frontend/vercel.json` con rewrite SPA → `index.html` para el router de React. Fix de producción: `database_url_resolved` traduce `postgresql://` → `postgresql+psycopg://` (esquema del pooler de Supabase/Neon). **79 tests backend verdes, 32 tests frontend verdes, `npm run build` OK.**
 
   - *Pasos de deploy (todo $0):*
-    1. **Supabase** (o Neon) → crear proyecto gratuito → Database → Connection string: `postgresql://postgres.<ref>:<clave>@aws-0-<region>.pooler.supabase.com:6543/postgres` (la app la normaliza sola).
+    1. **Supabase** (o Neon) → crear proyecto gratuito → Database → Connection string: `postgresql://postgres.<ref>:<clave>@aws-0-<region>.pooler.supabase.com:5432/postgres` (la app la normaliza sola). **OJO: no uses el host directo `db.<ref>.supabase.co` — es IPv6-only y NO es alcanzable desde Render; solo el session pooler (IPv4) funciona.** Si igual lo usás, `config.py` lo detecta y lo advierte en el log.
     2. **Render Free** → New → Web Service → apuntar repo/carpeta `backend/` → Build: `pip install -r requirements.txt` → Runtime: Python. Variables: copiar `backend/.env.example.prod` a `.env` del servicio (con `DATABASE_URL` de Supabase, `SECRET_KEY` generada ≥32 chars, `CORS_ORIGINS` y `FRONTEND_URL` del dominio de Vercel, `STAFF_EMAILS`, SMTP, `RATE_LIMIT_ENABLED=true`); health check path `/health`. El free plan duerme tras ~15 min sin tráfico (cold start tras el primer request).
     3. **Vercel** → New Project → carpeta `frontend/` → build `npm run build`, output `dist`; en Variables agregar `VITE_API_URL=https://<api>.onrender.com`. El `vercel.json` ya maneja el routing SPA.
     4. **Post-deploy:** crear el moderador con `python -m app.scripts.make_staff EMAIL` (en la consola de Render) o registrar el email en `STAFF_EMAILS` antes. Verificar `/health`, registro, publicación y un email de prueba.
   - *Limitaciones conocidas del stack gratis:*
-    - **`/uploads` es efímero** en Render Free (sin disco persistente): las fotos se pierden al redeploy/descanso. Para durabilidad real: subir a **Cloudflare R2** (10 GB gratis, sin egress) con S3 — queda como mejora futura, o refrescar imágenes subiéndolas de nuevo.
+    - **`/uploads` es efímero** en Render Free (sin disco persistente): las fotos se perdían al redeploy/descanso. **Resuelto en Fase 6** (fotos en Supabase Storage); el filesystem local queda solo para dev/tests.
     - **Cold start** del backend free (descanso tras ~15 min de inactividad).
     - **SQLite queda solo para dev**: en Render se usa Postgres de Supabase.
+
+- [x] **Fase 6 — Post-deploy: fotos durables, chat in-app mínimo y UX de cold start.** Detectado con pruebas reales en el sitio publicado (`https://libres-inmuebles.vercel.app` + `https://libreinmuebles-api.onrender.com`):
+
+  - *Fotos (bug real)*: el feed anónimo respondía OK, pero la foto daba **404** — el disco efímero de Render había borrado el archivo y quedaba solo la URL en la DB. **Solución: Supabase Storage.** Cliente REST propio en stdlib (`services/supabase_storage.py`, sin dependencias nuevas); `storage_service.py` sube a un bucket público `properties` con la misma validación PIL, devuelve URL pública absoluta y borra el objeto al eliminar imagen/propiedad; sin `SUPABASE_PROJECT_URL`/`SUPABASE_SERVICE_ROLE_KEY` cae al modo local (dev/tests). Bucket idempotente con `python -m app.scripts.setup_storage_bucket`. Env vars agregadas a `render.yaml` + `.env.example.prod` (con aviso sobre el host IPv6). Guard en `config.py` que advierte si `DATABASE_URL` apunta al host directo `db.<ref>.supabase.co` (IPv6-only, inalcanzable desde Render — ya ocurrió y lo explicamos arriba).
+
+  - *Spinner infinito anónimo*: el feed público **no tiene bug de código** (`GET /properties` funciona sin auth y Home sin loops); era **cold start de Render free** (instancia dormida → ~50s). UX: timeout de 40s en `apiFetch` (`AbortController` → mensaje "el servidor está arrancando…") + botón **Reintentar** en Home. Opcional tuyo para que Render nunca duerma: pinguear `/health` cada 5 min con **UptimeRobot** (gratis).
+
+  - *Layout del panel de contacto*: "Preguntar al dueño" y "Reportar publicación" ahora viven **dentro** de la card sticky única del detalle (precio → dueño → email/WhatsApp → pregunta → reportar) — nada queda escondido debajo del precio al scrollear.
+
+  - *WhatsApp*: plantilla nueva `Hola {nombre}, me interesa tu {tipo} en {barrio} ({operación}, {precio}). ¿Sigue disponible?` (antes repetía el título, que en la propiedad de prueba era "Andrés Nogueira" — el título hay que corregirlo en Mis publicaciones → Editar).
+
+  - *Chat in-app mínimo (respuestas a consultas)*: migración `e3a5d9c2b4f1` (tabla `inquiry_replies` con FKs CASCADE); `GET /inquiries/{id}` (hilo) y `POST /inquiries/{id}/replies` **solo participantes** (dueño o consultante; 403 para terceros; email dev-log al otro lado); `Messages.jsx` con burbujas (mías en brand, ajenas en gris), badge de respuestas en la lista, formulario "Responder en la app" y refresco del hilo tras enviar.
+
+  - *Herramientas*: `python -m app.scripts.smoke_prod` (health + feed anónimo + detalle contra la URL de Render).
+
+  - *Verificación*: **91 tests backend** (+12: 7 storage + 5 respuestas), **34 tests frontend** (+2 timeout), `npm run build` OK (53 módulos), migraciones al día en DB temporal.
 
 ## 6. Como correr (desde la raíz `Inmueble/`)
 

@@ -14,6 +14,7 @@ export default function Home() {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [retryKey, setRetryKey] = useState(0);
   const initial = useRef(true);
 
   const buildParams = useCallback(() => {
@@ -54,7 +55,7 @@ export default function Home() {
     return () => {
       cancelled = true;
     };
-  }, [buildParams]);
+  }, [buildParams, retryKey]);
 
   function handleFilterChange(next) {
     setFilters(next);
@@ -74,8 +75,14 @@ export default function Home() {
       <FilterBar filters={filters} onChange={handleFilterChange} />
 
       {error && (
-        <div className="mt-6">
+        <div className="mt-6 space-y-3">
           <Alert kind="error">{error}</Alert>
+          <button
+            onClick={() => setRetryKey((k) => k + 1)}
+            className="px-4 py-2 rounded-md border border-brand-600 text-brand-700 hover:bg-brand-50 text-sm font-medium"
+          >
+            Reintentar
+          </button>
         </div>
       )}
 

@@ -30,6 +30,14 @@ export function markInquiryRead(id) {
   return apiFetch(`/inquiries/${id}/read`, { method: "PATCH" });
 }
 
+export function getInquiryThread(id) {
+  return apiFetch(`/inquiries/${id}`);
+}
+
+export function createInquiryReply(id, payload) {
+  return apiFetch(`/inquiries/${id}/replies`, { method: "POST", body: payload });
+}
+
 export function createReport(payload) {
   return apiFetch("/reports", { method: "POST", body: payload });
 }

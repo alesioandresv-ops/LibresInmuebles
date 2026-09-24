@@ -103,4 +103,23 @@ describe("apiFetch", () => {
     await apiFetch("/moderation/reports").catch(() => {});
     expect(getToken()).toBe("token-ok");
   });
+
+  it("lanza ApiError amigable si la petición se corta por timeout", async () => {
+    global.fetch = vi.fn(
+      (url, options) =>
+        new Promise((_, reject) => {
+          options.signal.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError")));
+        })
+    );
+    const err = await apiFetch("/properties", { timeout: 5 }).catch((e) => e);
+    expect(err).toBeInstanceOf(ApiError);
+    expect(err.status).toBe(0);
+    expect(/arrancando|tardando/.test(err.message)).toBe(true);
+  });
+
+  it("no cancela la petición si no expira el timeout", async () => {
+    global.fetch = vi.fn(async () => jsonResponse(200, { ok: true }));
+    const res = await apiFetch("/properties", { timeout: 500 });
+    expect(res).toEqual({ ok: true });
+  });
 });

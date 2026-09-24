@@ -58,6 +58,8 @@ class PropertyService:
     def delete(self, user: User, property_id: int) -> None:
         prop = self._get_or_404(property_id)
         self._ensure_owner(user, prop)
+        for image in prop.images:
+            self.storage.delete(image.url)
         self.repo.delete(prop)
         self._cleanup_dir(property_id)
 

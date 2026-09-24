@@ -32,7 +32,7 @@ export function authHeaders() {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-export async function apiFetch(path, { method = "GET", body, headers = {} } = {}) {
+export async function apiFetch(path, { method = "GET", body, headers = {}, timeout = 40000 } = {}) {
   const options = {
     method,
     headers: { ...authHeaders(), ...headers },
@@ -45,7 +45,23 @@ export async function apiFetch(path, { method = "GET", body, headers = {} } = {}
       options.body = JSON.stringify(body);
     }
   }
-  const res = await fetch(`${API_BASE}${path}`, options);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeout);
+  options.signal = controller.signal;
+  let res;
+  try {
+    res = await fetch(`${API_BASE}${path}`, options);
+  } catch (err) {
+    if (err?.name === "AbortError") {
+      throw new ApiError(
+        "El servidor está tardando en responder (puede estar arrancando). Reintentá en un momento.",
+        0
+      );
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
   if (res.status === 204) return null;
 
   let data = null;

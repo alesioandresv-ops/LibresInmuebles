@@ -1,4 +1,5 @@
 from functools import lru_cache
+import logging
 from pathlib import Path
 from typing import Literal
 
@@ -8,6 +9,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 BACKEND_DIR = Path(__file__).resolve().parent.parent.parent
 
 DEFAULT_SECRET = "change-me"
+
+logger = logging.getLogger("libreinmuebles")
 
 
 class Settings(BaseSettings):
@@ -30,6 +33,10 @@ class Settings(BaseSettings):
     upload_dir: str = "uploads"
     max_upload_mb: int = 8
     max_image_pixels_side: int = 8000
+
+    supabase_project_url: str = ""
+    supabase_service_role_key: str = ""
+    supabase_storage_bucket: str = "properties"
 
     staff_emails: str = ""
     frontend_url: str = "http://localhost:5173"
@@ -65,8 +72,16 @@ class Settings(BaseSettings):
                 return f"sqlite:///{(BACKEND_DIR / relative).as_posix()}"
             return url
         if url.startswith("postgresql://"):
-            # Railway expone 'postgresql://...' pero SQLAlchemy necesita el driver psycopg explícito.
-            return url.replace("postgresql://", "postgresql+psycopg://", 1)
+            # Supabase/Railway exponen 'postgresql://...' pero SQLAlchemy necesita
+            # el driver psycopg explícito.
+            normalized = url.replace("postgresql://", "postgresql+psycopg://", 1)
+            host = url.split("@")[-1].split(":")[0]
+            if host.startswith("db.") and host.endswith(".supabase.co"):
+                logger.warning(
+                    "DATABASE_URL apunta al host DIRECTO de Supabase (%s), que es IPv6-only "
+                    "y NO es alcanzable desde Render. Usá el session pooler "
+                    "(aws-0-<region>.pooler.supabase.com).", host)
+            return normalized
         return url
 
     @property

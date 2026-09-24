@@ -8,6 +8,7 @@ from app.schemas.communication import (
     InquiryCreate,
     InquiryOut,
     InquiryOwnerOut,
+    InquiryReplyCreate,
     ReportCreate,
     ReportOut,
 )
@@ -28,6 +29,7 @@ def _inquiry_out(inquiry: Inquiry) -> InquiryOut:
         sender_id=inquiry.sender_id,
         sender=inquiry.sender,
         message=inquiry.message,
+        replies=inquiry.replies,
         is_read=inquiry.is_read,
         created_at=inquiry.created_at,
         recipient_email=owner.email,
@@ -94,6 +96,32 @@ def inquiry_unread_count(
     db: Session = Depends(get_db),
 ) -> dict:
     return {"count": CommunicationService(db).unread_count(current)}
+
+
+@router.get("/inquiries/{inquiry_id}", response_model=InquiryOwnerOut, summary="Conversación de una consulta (participantes)")
+def inquiry_detail(
+    inquiry_id: int,
+    current: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> InquiryOwnerOut:
+    inquiry = CommunicationService(db).get_thread(current, inquiry_id)
+    return _inquiry_owner_out(inquiry)
+
+
+@router.post(
+    "/inquiries/{inquiry_id}/replies",
+    response_model=InquiryOwnerOut,
+    status_code=status.HTTP_201_CREATED,
+    summary="Responder dentro de una consulta (solo participantes)",
+)
+def create_inquiry_reply(
+    inquiry_id: int,
+    data: InquiryReplyCreate,
+    current: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> InquiryOwnerOut:
+    inquiry = CommunicationService(db).create_reply(current, inquiry_id, data)
+    return _inquiry_owner_out(inquiry)
 
 
 @router.patch("/inquiries/{inquiry_id}/read", response_model=InquiryOwnerOut, summary="Marcar consulta como leída")

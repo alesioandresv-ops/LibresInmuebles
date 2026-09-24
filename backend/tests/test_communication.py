@@ -312,3 +312,91 @@ def test_whitespace_only_message_rejected(client):
         headers={"Authorization": f"Bearer {seeker_token}"},
     )
     assert resp.status_code == 422
+
+
+def _make_inquiry(client, owner_token, prop_id, seeker_token):
+    created = client.post(
+        "/inquiries",
+        json={"property_id": prop_id, "message": "¿Está disponible?"},
+        headers={"Authorization": f"Bearer {seeker_token}"},
+    )
+    assert created.status_code == 201
+    return created.json()["id"]
+
+
+def test_owner_reply_appears_in_thread_and_sent(client):
+    owner_token = register(client, OWNER)
+    prop_id = create_property(client, owner_token)
+    seeker_token = register(client, SEEKER)
+    inquiry_id = _make_inquiry(client, owner_token, prop_id, seeker_token)
+
+    resp = client.post(
+        f"/inquiries/{inquiry_id}/replies",
+        json={"message": "Sí, sigue disponible. ¿Cuándo querés visitarlo?"},
+        headers={"Authorization": f"Bearer {owner_token}"},
+    )
+    assert resp.status_code == 201
+    body = resp.json()
+    assert len(body["replies"]) == 1
+    assert body["replies"][0]["sender"]["first_name"] == OWNER["first_name"]
+    assert body["replies"][0]["message"].startswith("Sí, sigue disponible")
+
+    thread = client.get(f"/inquiries/{inquiry_id}", headers={"Authorization": f"Bearer {seeker_token}"})
+    assert thread.status_code == 200
+    assert len(thread.json()["replies"]) == 1
+
+
+def test_reply_visible_in_inbox_payload(client):
+    owner_token = register(client, OWNER)
+    prop_id = create_property(client, owner_token)
+    seeker_token = register(client, SEEKER)
+    inquiry_id = _make_inquiry(client, owner_token, prop_id, seeker_token)
+    client.post(
+        f"/inquiries/{inquiry_id}/replies",
+        json={"message": "Respuesta del dueño"},
+        headers={"Authorization": f"Bearer {owner_token}"},
+    )
+
+    inbox = client.get("/inquiries/inbox", headers={"Authorization": f"Bearer {owner_token}"})
+    assert inbox.status_code == 200
+    item = inbox.json()["items"][0]
+    assert len(item["replies"]) == 1
+
+
+def test_reply_requires_auth(client):
+    owner_token = register(client, OWNER)
+    prop_id = create_property(client, owner_token)
+    seeker_token = register(client, SEEKER)
+    inquiry_id = _make_inquiry(client, owner_token, prop_id, seeker_token)
+
+    resp = client.post(f"/inquiries/{inquiry_id}/replies", json={"message": "Hola"})
+    assert resp.status_code == 401
+
+
+def test_reply_third_party_forbidden(client):
+    owner_token = register(client, OWNER)
+    prop_id = create_property(client, owner_token)
+    seeker_token = register(client, SEEKER)
+    other_token = register(client, dict(SEEKER, email="otro3@example.com"))
+    inquiry_id = _make_inquiry(client, owner_token, prop_id, seeker_token)
+
+    resp = client.post(
+        f"/inquiries/{inquiry_id}/replies",
+        json={"message": "intruso"},
+        headers={"Authorization": f"Bearer {other_token}"},
+    )
+    assert resp.status_code == 403
+
+    thread = client.get(f"/inquiries/{inquiry_id}", headers={"Authorization": f"Bearer {other_token}"})
+    assert thread.status_code == 403
+
+
+def test_reply_on_missing_inquiry_404(client):
+    seeker_token = register(client, SEEKER)
+    resp = client.post(
+        "/inquiries/9999/replies",
+        json={"message": "Hola"},
+        headers={"Authorization": f"Bearer {seeker_token}"},
+    )
+    assert resp.status_code == 404
+    assert client.get("/inquiries/9999", headers={"Authorization": f"Bearer {seeker_token}"}).status_code == 404

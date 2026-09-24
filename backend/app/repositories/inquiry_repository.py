@@ -1,7 +1,11 @@
 from sqlalchemy import func, select
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 
-from app.models import Inquiry, Property
+from app.models import Inquiry, InquiryReply, Property
+
+_REPLIES_OPTION = selectinload(Inquiry.replies).joinedload(InquiryReply.sender)
+_PROPERTY_OWNER_OPTION = selectinload(Inquiry.property).joinedload(Property.owner)
+_PROPERTY_IMAGES_OPTION = selectinload(Inquiry.property).selectinload(Property.images)
 
 
 class InquiryRepository:
@@ -18,6 +22,26 @@ class InquiryRepository:
     def get(self, inquiry_id: int) -> Inquiry | None:
         return self.db.get(Inquiry, inquiry_id)
 
+    def get_with_details(self, inquiry_id: int) -> Inquiry | None:
+        stmt = (
+            select(Inquiry)
+            .where(Inquiry.id == inquiry_id)
+            .options(
+                _PROPERTY_OWNER_OPTION,
+                _PROPERTY_IMAGES_OPTION,
+                joinedload(Inquiry.sender),
+                _REPLIES_OPTION,
+            )
+        )
+        return self.db.execute(stmt).scalars().first()
+
+    def add_reply(self, inquiry_id: int, sender_id: int, message: str) -> InquiryReply:
+        reply = InquiryReply(inquiry_id=inquiry_id, sender_id=sender_id, message=message)
+        self.db.add(reply)
+        self.db.commit()
+        self.db.refresh(reply)
+        return reply
+
     def inbox(self, owner_id: int, page: int, limit: int) -> tuple[list[Inquiry], int]:
         """Consultas sobre las propiedades del dueño."""
         stmt = (
@@ -29,8 +53,10 @@ class InquiryRepository:
         items = list(
             self.db.scalars(
                 stmt.options(
-                    joinedload(Inquiry.property).joinedload(Property.owner),
+                    _PROPERTY_OWNER_OPTION,
+                    _PROPERTY_IMAGES_OPTION,
                     joinedload(Inquiry.sender),
+                    _REPLIES_OPTION,
                 )
                 .order_by(Inquiry.created_at.desc(), Inquiry.id.desc())
                 .offset((page - 1) * limit)
@@ -47,8 +73,10 @@ class InquiryRepository:
         items = list(
             self.db.scalars(
                 stmt.options(
-                    joinedload(Inquiry.property).joinedload(Property.owner),
+                    _PROPERTY_OWNER_OPTION,
+                    _PROPERTY_IMAGES_OPTION,
                     joinedload(Inquiry.sender),
+                    _REPLIES_OPTION,
                 )
                 .order_by(Inquiry.created_at.desc(), Inquiry.id.desc())
                 .offset((page - 1) * limit)

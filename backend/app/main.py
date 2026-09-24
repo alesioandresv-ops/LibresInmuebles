@@ -37,7 +37,7 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title="LibreInmuebles API",
         description="Marketplace P2P 'Dueño Directo' — Paso de los Libres, Corrientes.",
-        version="0.8.0",
+        version="0.9.0",
         **docs_kwargs,
     )
 

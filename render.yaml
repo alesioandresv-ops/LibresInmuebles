@@ -26,6 +26,12 @@ services:
         value: uploads
       - key: MAX_UPLOAD_MB
         value: "8"
+      - key: SUPABASE_PROJECT_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SUPABASE_STORAGE_BUCKET
+        value: properties
       - key: STAFF_EMAILS
         sync: false
       - key: SMTP_HOST

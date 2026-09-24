@@ -82,7 +82,7 @@ export default function PropertyDetail() {
   const contact = property.contact;
   const whatsappHref = whatsappUrl(
     contact?.whatsapp,
-    `Hola ${property.owner.first_name}, me interesa "${property.title}".`
+    `Hola ${property.owner.first_name}, me interesa tu ${TYPE_LABELS[property.property_type] ?? property.property_type} en ${property.neighborhood} (${OPERATION_LABELS[property.operation_type] ?? property.operation_type}, ${formatPrice(property.currency, property.price)}). ¿Sigue disponible?`
   );
   const hasCoords = property.latitude != null && property.longitude != null;
   const isOwnerOfThis = isAuthenticated && property.owner_id === user?.id;
@@ -285,63 +285,61 @@ export default function PropertyDetail() {
                     Escribir por WhatsApp
                   </a>
                 )}
+
+                <div className="border-t pt-4">
+                  {inquiryDone ? (
+                    <div className="rounded-xl border border-brand-200 p-5 text-sm text-brand-900">
+                      Consulta enviada. El dueño la va a recibir en{" "}
+                      <Link to="/mensajes" className="underline">Mis mensajes</Link>.
+                    </div>
+                  ) : (
+                    <div>
+                      <button
+                        onClick={() => setShowInquiry((s) => !s)}
+                        className="w-full flex items-center justify-between font-medium text-brand-700 hover:text-brand-900"
+                      >
+                        <span>Preguntar al dueño</span>
+                        <span className="text-xs">{showInquiry ? "▲" : "▼"}</span>
+                      </button>
+                      {showInquiry && (
+                        <form onSubmit={handleSendInquiry} className="mt-3 space-y-2">
+                          <textarea
+                            rows={3}
+                            required
+                            minLength={3}
+                            value={inquiryText}
+                            onChange={(e) => setInquiryText(e.target.value)}
+                            placeholder="Hola, me interesa esta publicación. ¿Sigue disponible?"
+                            className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                          />
+                          {inquiryError && <Alert kind="error">{inquiryError}</Alert>}
+                          <button
+                            type="submit"
+                            disabled={sendingInquiry}
+                            className="w-full bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white font-medium py-2 rounded-md"
+                          >
+                            {sendingInquiry ? "Enviando…" : "Enviar consulta"}
+                          </button>
+                        </form>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div className="text-center border-t pt-4">
+                  <button
+                    onClick={() => {
+                      setShowReport(true);
+                      setReportError(null);
+                    }}
+                    className="text-xs text-gray-400 hover:text-red-600 underline"
+                  >
+                    Reportar publicación
+                  </button>
+                </div>
               </>
             )}
           </div>
-
-          {isAuthenticated && !isOwnerOfThis && (
-            <>
-              {inquiryDone ? (
-                <div className="bg-white rounded-xl border border-brand-200 p-5 text-sm text-brand-900">
-                  Consulta enviada. El dueño la va a recibir en{" "}
-                  <Link to="/mensajes" className="underline">Mis mensajes</Link>.
-                </div>
-              ) : (
-                <div className="bg-white rounded-xl border border-gray-200 p-5">
-                  <button
-                    onClick={() => setShowInquiry((s) => !s)}
-                    className="w-full flex items-center justify-between font-medium text-brand-700 hover:text-brand-900"
-                  >
-                    <span>Preguntar al dueño</span>
-                    <span className="text-xs">{showInquiry ? "▲" : "▼"}</span>
-                  </button>
-                  {showInquiry && (
-                    <form onSubmit={handleSendInquiry} className="mt-3 space-y-2">
-                      <textarea
-                        rows={4}
-                        required
-                        minLength={3}
-                        value={inquiryText}
-                        onChange={(e) => setInquiryText(e.target.value)}
-                        placeholder="Hola, me interesa esta publicación. ¿Sigue disponible?"
-                        className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                      />
-                      {inquiryError && <Alert kind="error">{inquiryError}</Alert>}
-                      <button
-                        type="submit"
-                        disabled={sendingInquiry}
-                        className="w-full bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white font-medium py-2 rounded-md"
-                      >
-                        {sendingInquiry ? "Enviando…" : "Enviar consulta"}
-                      </button>
-                    </form>
-                  )}
-                </div>
-              )}
-
-              <div className="text-center">
-                <button
-                  onClick={() => {
-                    setShowReport(true);
-                    setReportError(null);
-                  }}
-                  className="text-xs text-gray-400 hover:text-red-600 underline"
-                >
-                  Reportar publicación
-                </button>
-              </div>
-            </>
-          )}
         </aside>
       </div>
 

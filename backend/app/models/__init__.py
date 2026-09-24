@@ -7,7 +7,7 @@ from app.models.enums import (
     ReportStatus,
     UserRole,
 )
-from app.models.inquiry import Inquiry
+from app.models.inquiry import Inquiry, InquiryReply
 from app.models.property import Property
 from app.models.property_image import PropertyImage
 from app.models.report import Report
@@ -15,6 +15,7 @@ from app.models.user import User
 
 __all__ = [
     "Inquiry",
+    "InquiryReply",
     "OperationType",
     "Property",
     "PropertyCurrency",

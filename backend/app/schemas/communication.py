@@ -19,6 +19,20 @@ class SenderBrief(BaseModel):
     last_name: str
 
 
+class InquiryReplyCreate(BaseModel):
+    message: InquiryMessageStr
+
+
+class InquiryReplyOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    sender_id: int
+    sender: SenderBrief
+    message: str
+    created_at: datetime
+
+
 class InquiryOut(BaseModel):
     id: int
     property_id: int
@@ -27,6 +41,7 @@ class InquiryOut(BaseModel):
     sender_id: int
     sender: SenderBrief
     message: str
+    replies: list[InquiryReplyOut] = []
     is_read: bool
     created_at: datetime
     recipient_email: str | None = None
