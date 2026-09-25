@@ -91,6 +91,7 @@ Objetivo: que Google encuentre e indexe el sitio (sin prerender ni dominio propi
 - **`frontend/index.html`**: `canonical`, `og:url/site_name/locale/image` (usa `FondoLibreInmueble.png`), `twitter:card=summary_large_image` y bloque **JSON-LD `WebSite`**.
 - **Por qué no aparecía en Google** (diagnóstico): SPA sin SSR + cold start de la API (Googlebot ve poca texto), sin sitemap/robots, dominio `.vercel.app` flamante sin Google Search Console ni backlinks, y factor tiempo.
 - **Pendiente manual**: verificar el sitio en Google Search Console (prefijo de URL `https://libres-inmuebles.vercel.app`), enviar el sitemap y pedir indexación. Preciso acceso privilegiado para agregar el archivo/meta de verificación que genere GSC.
+- **Verificación GSC agregada (25/09/2026)**: meta `google-site-verification` insertado en `index.html` (commit `ba7ea60`) — paso previo a la verificación en Search Console.
 
 ### 5. Exploración de monetización (sin desarrollar)
 
