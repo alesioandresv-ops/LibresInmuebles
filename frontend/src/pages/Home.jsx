@@ -1,14 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { searchProperties } from "../api/properties.js";
 import { Alert, Spinner } from "../components/Feedback.jsx";
-import FilterBar from "../components/FilterBar.jsx";
+import BenefitsBar from "../components/BenefitsBar.jsx";
+import CategoryGrid from "../components/CategoryGrid.jsx";
+import CtaOwner from "../components/CtaOwner.jsx";
+import Hero from "../components/Hero.jsx";
 import PropertyCard from "../components/PropertyCard.jsx";
 import { DEFAULT_FILTERS } from "../constants.js";
 import usePageTitle from "../hooks/usePageTitle.js";
 
 export default function Home() {
   usePageTitle("Inmuebles en Paso de los Libres");
+  const location = useLocation();
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
   const [data, setData] = useState({ items: [], total: 0, page: 1, limit: 20, total_pages: 1 });
   const [page, setPage] = useState(1);
@@ -16,6 +20,9 @@ export default function Home() {
   const [error, setError] = useState(null);
   const [retryKey, setRetryKey] = useState(0);
   const initial = useRef(true);
+  const resultsRef = useRef(null);
+
+  const isFiltered = JSON.stringify(filters) !== JSON.stringify(DEFAULT_FILTERS);
 
   const buildParams = useCallback(() => {
     const params = {
@@ -57,76 +64,112 @@ export default function Home() {
     };
   }, [buildParams, retryKey]);
 
+  useEffect(() => {
+    if (location.state?.scrollTo === "busqueda") {
+      resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [location.state]);
+
   function handleFilterChange(next) {
     setFilters(next);
     initial.current = false;
     setPage(1);
   }
 
+  function scrollToResults() {
+    resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function handleSelectType(propertyType) {
+    handleFilterChange({ ...DEFAULT_FILTERS, property_type: propertyType });
+    setTimeout(scrollToResults, 0);
+  }
+
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-brand-900">Inmuebles en Paso de los Libres</h1>
-        <p className="text-gray-600 mt-1">
-          Dueño Directo: sin intermediarios ni comisiones. {data.total} publicaciones activas.
-        </p>
-      </div>
+    <div>
+      <Hero filters={filters} onChange={handleFilterChange} onSearch={scrollToResults} />
+      <BenefitsBar />
 
-      <FilterBar filters={filters} onChange={handleFilterChange} />
-
-      {error && (
-        <div className="mt-6 space-y-3">
-          <Alert kind="error">{error}</Alert>
+      <section ref={resultsRef} id="busqueda" aria-label="Resultados" className="app-container scroll-mt-24 py-12 md:py-16">
+        <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h2 className="text-2xl font-bold text-brand-900 md:text-3xl">
+              {isFiltered ? "Resultados" : "Propiedades destacadas"}
+            </h2>
+            <p className="mt-2 text-sm text-slate-500">
+              {isFiltered
+                ? `${data.total} ${data.total === 1 ? "publicación encontrada" : "publicaciones encontradas"} con tus filtros.`
+                : "Las publicaciones más recientes de dueños directos."}
+            </p>
+          </div>
           <button
-            onClick={() => setRetryKey((k) => k + 1)}
-            className="px-4 py-2 rounded-md border border-brand-600 text-brand-700 hover:bg-brand-50 text-sm font-medium"
+            onClick={() => {
+              if (isFiltered) handleFilterChange({ ...DEFAULT_FILTERS });
+              scrollToResults();
+            }}
+            className="text-sm font-semibold text-brand-700 transition hover:text-brand-900"
           >
-            Reintentar
+            {isFiltered ? "Limpiar filtros y ver todas →" : "Ver todas las propiedades →"}
           </button>
         </div>
-      )}
 
-      <div className="mt-6">
+        {error && (
+          <div className="mt-4 space-y-3">
+            <Alert kind="error">{error}</Alert>
+            <button
+              onClick={() => setRetryKey((k) => k + 1)}
+              className="px-4 py-2 rounded-md border border-brand-600 text-brand-700 hover:bg-brand-50 text-sm font-medium"
+            >
+              Reintentar
+            </button>
+          </div>
+        )}
+
         {loading ? (
-          <Spinner />
+          <div className="py-16">
+            <Spinner />
+          </div>
         ) : data.items.length === 0 ? (
-          <div className="text-center py-16 text-gray-500">
-            No hay publicaciones con esos filtros.{" "}
-            <Link to="/publicar" className="text-brand-600 underline">
+          <div className="text-center py-16">
+            <p className="text-gray-500">No hay publicaciones con esos filtros.</p>
+            <Link to="/publicar" className="mt-1 inline-block text-brand-600 underline">
               Publicá la tuya gratis
             </Link>
             .
           </div>
         ) : (
           <>
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 md:gap-6 xl:grid-cols-4">
               {data.items.map((p) => (
                 <PropertyCard key={p.id} property={p} />
               ))}
             </div>
 
-            <div className="flex items-center justify-center gap-4 mt-8">
+            <div className="mt-10 flex items-center justify-center gap-4">
               <button
                 disabled={data.page <= 1}
                 onClick={() => setPage((p) => p - 1)}
-                className="px-4 py-2 rounded-md border border-gray-300 text-sm disabled:opacity-40 hover:border-brand-500"
+                className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-brand-500 hover:text-brand-700 disabled:opacity-40 disabled:hover:border-slate-200 disabled:hover:text-slate-600"
               >
                 ← Anterior
               </button>
-              <span className="text-sm text-gray-600">
+              <span className="text-sm text-slate-500">
                 Página {data.page} de {data.total_pages || 1}
               </span>
               <button
                 disabled={data.page >= data.total_pages}
                 onClick={() => setPage((p) => p + 1)}
-                className="px-4 py-2 rounded-md border border-gray-300 text-sm disabled:opacity-40 hover:border-brand-500"
+                className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-brand-500 hover:text-brand-700 disabled:opacity-40 disabled:hover:border-slate-200 disabled:hover:text-slate-600"
               >
                 Siguiente →
               </button>
             </div>
           </>
         )}
-      </div>
+      </section>
+
+      <CategoryGrid onSelectType={handleSelectType} />
+      <CtaOwner />
     </div>
   );
 }

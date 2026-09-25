@@ -41,15 +41,48 @@ export function formatDateTime(iso) {
 
 export const NEIGHBORHOODS = [
   "Centro",
-  "Barrio Inmaculada",
-  "Barrio San José",
-  "Cattaneo",
-  "Barrio Belgrano",
-  "La Merced",
-  "Isondu",
-  "Hugo Wraz",
-  "Río Uruguay",
+  "Costanera",
+  "Zapadores",
+  "Chaquito",
+  "Picaflor",
+  "Santa Rosa",
+  "San Cayetano",
+  "Caá Guazú",
+  "Ombucito",
+  "El Palmar",
+  "Las Carmelitas",
+  "Héroes de Malvinas",
+  "Facundo Quiroga",
+  "René Favaloro",
+  "Santa Bárbara",
+  "Terminal",
+  "Suboficiales Yapeyú",
+  "Simeón Paiba",
+  "Catamarca",
+  "Lomas Valentinas",
+  "Primavera",
+  "Las Flores",
+  "San Martín",
+  "La Amelia",
+  "La Florida",
+  "Las Palmas",
+  "Nueva Esperanza",
+  "Barrio 508",
+  "255 Viviendas",
+  "99 Viviendas",
+  "80 Viviendas",
+  "60 Viviendas",
+  "40 Viviendas",
+  "30 Viviendas",
+  "20 Viviendas",
+  "17 de Agosto",
+  "154 Viviendas",
+  "132 Viviendas (Tablitas)",
 ];
+
+export const NEIGHBORHOOD_SUBOPTIONS = {
+  "Barrio 508": ["Barrio 508", "Sector 300"],
+};
 
 export const SERVICES = [
   { key: "has_water", label: "Agua corriente" },
@@ -62,6 +95,12 @@ export const SERVICES = [
 export function formatPrice(currency, value) {
   const prefix = currency === "USD" ? "US$" : "$";
   return `${prefix} ${Number(value).toLocaleString("es-AR")}`;
+}
+
+export function operationPeriod(operation) {
+  if (operation === "alquiler_permanente") return " / mes";
+  if (operation === "alquiler_temporal") return " / día";
+  return "";
 }
 
 export const DEFAULT_FILTERS = {

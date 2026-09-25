@@ -1,10 +1,11 @@
-import { DEFAULT_FILTERS, NEIGHBORHOODS, OPERATION_OPTIONS, SERVICES, TYPE_OPTIONS } from "../constants.js";
+import { DEFAULT_FILTERS, OPERATION_OPTIONS, SERVICES, TYPE_OPTIONS } from "../constants.js";
+import NeighborhoodPicker from "./NeighborhoodPicker.jsx";
 
 const inputCls =
   "w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white";
 const labelCls = "block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1";
 
-export default function FilterBar({ filters, onChange }) {
+export default function FilterBar({ filters, onChange, embedded = false }) {
   function update(patch) {
     onChange({ ...filters, ...patch });
   }
@@ -16,10 +17,15 @@ export default function FilterBar({ filters, onChange }) {
     update({ services });
   }
 
+  const Tag = embedded ? "div" : "form";
   return (
-    <form
-      onSubmit={(e) => e.preventDefault()}
-      className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4"
+    <Tag
+      {...(!embedded && { onSubmit: (e) => e.preventDefault() })}
+      className={
+        embedded
+          ? "grid gap-4 rounded-xl bg-white p-4 md:grid-cols-2 xl:grid-cols-4"
+          : "bg-white rounded-xl border border-gray-200 shadow-sm p-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4"
+      }
     >
       <div className="md:col-span-2 xl:col-span-2">
         <div className="grid grid-cols-2 gap-4">
@@ -58,14 +64,13 @@ export default function FilterBar({ filters, onChange }) {
 
       <div>
         <label className={labelCls}>Barrio</label>
-        <select value={filters.neighborhood} onChange={(e) => update({ neighborhood: e.target.value })} className={inputCls}>
-          <option value="">Todos</option>
-          {NEIGHBORHOODS.map((n) => (
-            <option key={n} value={n}>
-              {n}
-            </option>
-          ))}
-        </select>
+        <NeighborhoodPicker
+          value={filters.neighborhood}
+          onChange={(v) => update({ neighborhood: v })}
+          allowEmpty
+          emptyLabel="Todos"
+          className={inputCls}
+        />
       </div>
 
       <div>
@@ -153,6 +158,6 @@ export default function FilterBar({ filters, onChange }) {
           Limpiar filtros
         </button>
       </div>
-    </form>
+    </Tag>
   );
 }

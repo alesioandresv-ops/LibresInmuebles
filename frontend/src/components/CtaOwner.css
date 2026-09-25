@@ -1,0 +1,76 @@
+.cta-libre {
+  position: relative;
+  background-color: #0a1931;
+  background-image: linear-gradient(
+      90deg,
+      #0a1931 0%,
+      #0e2f5f 48%,
+      rgba(14, 47, 95, 0.7) 60%,
+      transparent 95%
+    ),
+    url("/assets/images/cta-house-bg.webp");
+  background-repeat: no-repeat;
+  background-size: auto 140%;
+  background-position: right center;
+  min-height: 400px;
+}
+
+@supports (background-image: image-set("x" 1x)) {
+  .cta-libre {
+    background-image: linear-gradient(
+        90deg,
+        #0a1931 0%,
+        #0e2f5f 48%,
+        rgba(14, 47, 95, 0.7) 60%,
+        transparent 95%
+      ),
+      image-set(
+        url("/assets/images/cta-house-bg.webp") 1x,
+        url("/assets/images/cta-house-bg-2x.webp") 2x
+      );
+  }
+}
+
+.cta-libre__content {
+  max-width: 100%;
+}
+
+@media (min-width: 768px) {
+  .cta-libre {
+    min-height: 280px;
+  }
+  .cta-libre__content {
+    max-width: 60%;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .cta-libre {
+    background-image: linear-gradient(180deg, rgba(10, 25, 49, 0.7), rgba(10, 25, 49, 0.7)),
+      linear-gradient(
+        180deg,
+        rgba(10, 25, 49, 0.9) 0%,
+        rgba(14, 47, 95, 0.85) 45%,
+        rgba(14, 47, 95, 0.6) 100%
+      ),
+      url("/assets/images/cta-house-bg.webp");
+    background-position: center center;
+    background-size: cover;
+  }
+
+  @supports (background-image: image-set("x" 1x)) {
+    .cta-libre {
+      background-image: linear-gradient(180deg, rgba(10, 25, 49, 0.7), rgba(10, 25, 49, 0.7)),
+        linear-gradient(
+          180deg,
+          rgba(10, 25, 49, 0.9) 0%,
+          rgba(14, 47, 95, 0.85) 45%,
+          rgba(14, 47, 95, 0.6) 100%
+        ),
+        image-set(
+          url("/assets/images/cta-house-bg.webp") 1x,
+          url("/assets/images/cta-house-bg-2x.webp") 2x
+        );
+    }
+  }
+}

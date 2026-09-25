@@ -8,8 +8,9 @@ import {
   uploadImage,
 } from "../api/properties.js";
 import { Alert, Spinner } from "../components/Feedback.jsx";
+import NeighborhoodPicker from "../components/NeighborhoodPicker.jsx";
 import { assetUrl } from "../api/client.js";
-import { NEIGHBORHOODS, OPERATION_OPTIONS, SERVICES, TYPE_OPTIONS } from "../constants.js";
+import { OPERATION_OPTIONS, SERVICES, TYPE_OPTIONS } from "../constants.js";
 import usePageTitle from "../hooks/usePageTitle.js";
 
 const MAX_PHOTO_MB = 8;
@@ -300,14 +301,13 @@ export default function EditProperty() {
           </div>
           <div>
             <label className={labelCls}>Barrio</label>
-            <select className={inputCls} value={form.neighborhood} onChange={set("neighborhood")}>
-              <option value="">Seleccioná un barrio…</option>
-              {NEIGHBORHOODS.map((n) => (
-                <option key={n} value={n}>
-                  {n}
-                </option>
-              ))}
-            </select>
+            <NeighborhoodPicker
+              value={form.neighborhood}
+              onChange={(value) => set("neighborhood")({ target: { value } })}
+              allowEmpty
+              emptyLabel="Seleccioná un barrio…"
+              className={inputCls}
+            />
           </div>
           <div>
             <label className={labelCls}>Dirección</label>

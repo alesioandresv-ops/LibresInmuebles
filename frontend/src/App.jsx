@@ -1,5 +1,6 @@
-import { Link, Route, Routes } from "react-router-dom";
+import { Route, Routes } from "react-router-dom";
 import Navbar from "./components/Navbar.jsx";
+import Footer from "./components/Footer.jsx";
 import { PublicOnly, RequireAuth, RequireOwner, RequireStaff } from "./components/Protected.jsx";
 import Home from "./pages/Home.jsx";
 import Login from "./pages/Login.jsx";
@@ -107,12 +108,7 @@ export default function App() {
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
-      <footer className="bg-white border-t py-6 text-center text-sm text-gray-500">
-        <Link to="/legal" className="text-brand-600 hover:underline">
-          Modelos de contratos
-        </Link>{" "}
-        · LibreInmuebles — conectamos dueños directos con interesados en Paso de los Libres, Corrientes.
-      </footer>
+      <Footer />
     </div>
   );
 }

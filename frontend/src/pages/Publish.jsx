@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { createProperty, deleteProperty, uploadImage } from "../api/properties.js";
 import { Alert } from "../components/Feedback.jsx";
-import { NEIGHBORHOODS, OPERATION_OPTIONS, SERVICES, TYPE_OPTIONS } from "../constants.js";
+import NeighborhoodPicker from "../components/NeighborhoodPicker.jsx";
+import { OPERATION_OPTIONS, SERVICES, TYPE_OPTIONS } from "../constants.js";
 import usePageTitle from "../hooks/usePageTitle.js";
 
 const STEPS = ["Operación y tipo", "Datos del inmueble", "Servicios y contacto", "Fotos y revisión"];
@@ -233,14 +234,13 @@ export default function Publish() {
             </div>
             <div>
               <label className={labelCls}>Barrio</label>
-              <select className={inputCls} value={form.neighborhood} onChange={set("neighborhood")}>
-                <option value="">Seleccioná un barrio…</option>
-                {NEIGHBORHOODS.map((n) => (
-                  <option key={n} value={n}>
-                    {n}
-                  </option>
-                ))}
-              </select>
+              <NeighborhoodPicker
+                value={form.neighborhood}
+                onChange={(value) => set("neighborhood")({ target: { value } })}
+                allowEmpty
+                emptyLabel="Seleccioná un barrio…"
+                className={inputCls}
+              />
             </div>
             <div>
               <label className={labelCls}>Dirección</label>
