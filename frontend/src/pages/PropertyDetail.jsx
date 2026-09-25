@@ -62,6 +62,44 @@ export default function PropertyDetail() {
     };
   }, [id]);
 
+  useEffect(() => {
+    if (!property) return undefined;
+    const listing = {
+      "@context": "https://schema.org",
+      "@type": "RealEstateListing",
+      name: property.title,
+      description: property.description,
+      url: `${window.location.origin}/properties/${property.id}`,
+      datePosted: property.created_at,
+      image: (property.images ?? []).map((img) => assetUrl(img.url)),
+      address: {
+        "@type": "PostalAddress",
+        streetAddress: property.address ? `${property.address}, ${property.neighborhood ?? ""}` : (property.neighborhood ?? ""),
+        addressLocality: "Paso de los Libres",
+        addressRegion: "Corrientes",
+        addressCountry: "AR",
+      },
+      offers: {
+        "@type": "Offer",
+        priceCurrency: property.currency,
+        price: property.price,
+      },
+      numberOfRooms: property.bedrooms,
+      numberOfBathroomsTotal: property.bathrooms,
+      floorSize: property.surface_m2
+        ? { "@type": "QuantitativeValue", value: Number(property.surface_m2), unitCode: "MTK" }
+        : undefined,
+    };
+    const script = document.createElement("script");
+    script.type = "application/ld+json";
+    script.id = "realestate-jsonld";
+    script.textContent = JSON.stringify(listing);
+    document.head.appendChild(script);
+    return () => {
+      document.getElementById("realestate-jsonld")?.remove();
+    };
+  }, [property]);
+
   if (loading) return <Spinner />;
   if (error || !property) {
     return (

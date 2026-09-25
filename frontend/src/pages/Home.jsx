@@ -170,6 +170,21 @@ export default function Home() {
 
       <CategoryGrid onSelectType={handleSelectType} />
       <CtaOwner />
+
+      <section aria-label="Qué encontrar en LibreInmuebles" className="app-container py-12 md:py-16">
+        <div className="mx-auto max-w-3xl">
+          <h2 className="text-center text-2xl font-bold text-brand-900 md:text-3xl">
+            Departamentos, casas y terrenos en Paso de los Libres
+          </h2>
+          <p className="mt-4 text-center leading-relaxed text-slate-600">
+            En LibreInmuebles encontrás alquileres permanentes y temporales y también ventas de propiedades
+            publicadas por sus propios dueños, sin inmobiliarias de por medio. Buscá departamentos en alquiler,
+            casas en venta, terrenos y locales comerciales en los barrios de Paso de los Libres: Centro,
+            Costanera, Barrio 508, Ombucito, Santa Rosa y más. Publicá tu inmueble gratis y contactate
+            directamente con el propietario o el interesado, sin comisiones.
+          </p>
+        </div>
+      </section>
     </div>
   );
 }

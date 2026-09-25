@@ -97,6 +97,15 @@ Objetivo: que Google encuentre e indexe el sitio (sin prerender ni dominio propi
 
 El usuario preguntó cómo generar ingresos **sin que el dueño pague más que a una inmobiliaria**. Se listaron modelos (destacados pagos, packs por tiempo, visa de contactos, suscripción Pro, servicios auxiliares flat, patrocinios locales, convenio municipal). **Decisión: por ahora solo ideas, no se implementa nada.** La base recomendada es "publicar gratis + destacar con tarifa plana".
 
+### 6. SEO de contenido para keywords locales (25/09/2026)
+
+Desplegados los 3 commits del rediseño+catálogo+SEO y verificada la propiedad en GSC (método Etiqueta HTML). Al pedir la indexación en GSC el usuario chocó con la **cuota diaria** ("Cuota superada") → Google indexa igual, solo más lento; se reintenta al día siguiente.
+
+Para apuntar a búsquedas como "departamentos/alquileres en Paso de los Libres":
+- `index.html`: title/description/OG reescritos con las keywords (p. ej. "Casas y departamentos en Paso de los Libres — Alquiler y venta, dueño directo").
+- `Home.jsx`: bloque de texto SEO real bajo el CTA (qué encontrar, barrios mencionados, dueño directo sin comisiones).
+- `PropertyDetail.jsx`: **JSON-LD `RealEstateListing`** por propiedad (precio, moneda, dirección, localidad/región, superficie, dormitorios/baños, imágenes, fecha), inyectado dinámico con limpieza al desmontar.
+
 ---
 
 ## Decisiones registradas
