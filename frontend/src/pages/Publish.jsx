@@ -1,12 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { createProperty, deleteProperty, uploadImage } from "../api/properties.js";
+import { createProperty, uploadImage } from "../api/properties.js";
 import { Alert } from "../components/Feedback.jsx";
 import NeighborhoodPicker from "../components/NeighborhoodPicker.jsx";
 import { OPERATION_OPTIONS, SERVICES, TYPE_OPTIONS } from "../constants.js";
 import usePageTitle from "../hooks/usePageTitle.js";
 
-const STEPS = ["Operación y tipo", "Datos del inmueble", "Servicios y contacto", "Fotos y revisión"];
+const STEPS = [
+  "Operación y tipo",
+  "Datos del inmueble",
+  "Fotos",
+  "Servicios y contacto",
+  "Revisión",
+];
 
 const MAX_PHOTO_MB = 8;
 const ALLOWED_PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -46,6 +52,7 @@ export default function Publish() {
   const [step, setStep] = useState(0);
   const [form, setForm] = useState(initialForm);
   const [photos, setPhotos] = useState([]);
+  const [photoError, setPhotoError] = useState(null);
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -56,7 +63,7 @@ export default function Publish() {
     }));
 
   function canContinue() {
-    if (step === 0) return form.operation_type && form.property_type;
+    if (step === 0) return Boolean(form.operation_type && form.property_type);
     if (step === 1)
       return (
         form.title.trim().length >= 3 &&
@@ -66,7 +73,7 @@ export default function Publish() {
         form.neighborhood &&
         form.address.trim().length >= 1
       );
-    if (step === 2) return true;
+    // Fotos, servicios y revisión no bloquean el avance.
     return true;
   }
 
@@ -106,41 +113,70 @@ export default function Publish() {
     setError(null);
     if (photos.some((f) => !isValidPhoto(f))) {
       setError(`Solo se admiten JPG, PNG o WebP de hasta ${MAX_PHOTO_MB} MB por foto.`);
-      setSubmitting(false);
       return;
     }
     setSubmitting(true);
-    let createdId = null;
+
+    // 1) Creamos la publicación. Si esto falla, no se perdió nada: seguimos en el formulario.
+    let created;
     try {
-      const created = await createProperty(toPayload());
-      createdId = created.id;
-      for (const photo of photos) {
-        await uploadImage(created.id, photo);
-      }
-      navigate(`/properties/${created.id}`);
+      created = await createProperty(toPayload());
     } catch (err) {
-      setError(err.message ?? "No se pudo publicar.");
-      if (createdId) {
-        try {
-          await deleteProperty(createdId);
-        } catch {
-          // el borrado es best-effort; el error original tiene prioridad
-        }
-      }
+      setError(err.message ?? "No se pudo publicar. Revisá los datos e intentá de nuevo.");
       setSubmitting(false);
+      return;
     }
+
+    // 2) Subimos las fotos. Si alguna falla, NO borramos la publicación ya creada:
+    //    llevamos al usuario a editar para que reintente sin perder los datos cargados.
+    const failed = [];
+    for (const photo of photos) {
+      try {
+        await uploadImage(created.id, photo);
+      } catch {
+        failed.push(photo.name);
+      }
+    }
+
+    if (failed.length > 0) {
+      navigate(`/mis-publicaciones/${created.id}/editar`, {
+        replace: true,
+        state: {
+          photoWarning:
+            `Tu publicación se creó correctamente, pero no se ${failed.length === 1 ? "pudo" : "pudieron"} subir ` +
+            `${failed.length === 1 ? `la foto "${failed[0]}"` : `${failed.length} fotos (${failed.join(", ")})`}. ` +
+            "Podés volver a intentarlo desde acá; no perdiste los datos cargados.",
+        },
+      });
+      return;
+    }
+
+    navigate(`/properties/${created.id}`);
   }
 
   function togglePhoto(e) {
     const files = Array.from(e.target.files ?? []);
     const invalid = files.filter((f) => !isValidPhoto(f));
     const valid = files.filter(isValidPhoto);
+    const room = Math.max(0, MAX_PHOTOS - photos.length);
+
     if (invalid.length > 0) {
-      setError(`Se omitieron ${invalid.length} archivos: solo JPG, PNG o WebP de hasta ${MAX_PHOTO_MB} MB.`);
+      setPhotoError(
+        `Se omitieron ${invalid.length} archivo(s): solo se admiten JPG, PNG o WebP de hasta ${MAX_PHOTO_MB} MB.`
+      );
+    } else if (valid.length > room) {
+      setPhotoError(`Podés subir hasta ${MAX_PHOTOS} fotos. Se agregaron las primeras ${room}.`);
     } else {
-      setError(null);
+      setPhotoError(null);
     }
+
     setPhotos((prev) => [...prev, ...valid].slice(0, MAX_PHOTOS));
+    e.target.value = ""; // permite volver a elegir el mismo archivo
+  }
+
+  function removePhoto(index) {
+    setPhotos((prev) => prev.filter((_, i) => i !== index));
+    setPhotoError(null);
   }
 
   const previews = useMemo(() => photos.map((p) => URL.createObjectURL(p)), [photos]);
@@ -163,11 +199,11 @@ export default function Publish() {
       </p>
 
       {/* Indicador de pasos */}
-      <ol className="flex gap-2 mb-6">
+      <ol className="flex gap-1.5 sm:gap-2 mb-6">
         {STEPS.map((label, i) => (
           <li
             key={label}
-            className={`flex-1 text-center text-xs py-2 rounded-md border ${
+            className={`flex-1 text-center text-[11px] sm:text-xs leading-tight py-2 px-1 rounded-md border ${
               i === step
                 ? "border-brand-600 bg-brand-600 text-white font-semibold"
                 : i < step
@@ -182,7 +218,7 @@ export default function Publish() {
 
       {error && (
         <div className="mb-4">
-          <Alert>{error}</Alert>
+          <Alert kind="error">{error}</Alert>
         </div>
       )}
 
@@ -225,12 +261,22 @@ export default function Publish() {
         {step === 1 && (
           <div className="grid sm:grid-cols-2 gap-4">
             <div className="sm:col-span-2">
-              <label className={labelCls}>Título</label>
-              <input className={inputCls} value={form.title} onChange={set("title")} maxLength={200} />
+              <label className={labelCls} htmlFor="title">
+                Título
+              </label>
+              <input id="title" className={inputCls} value={form.title} onChange={set("title")} maxLength={200} />
             </div>
             <div className="sm:col-span-2">
-              <label className={labelCls}>Descripción</label>
-              <textarea className={inputCls} rows={4} value={form.description} onChange={set("description")} />
+              <label className={labelCls} htmlFor="description">
+                Descripción
+              </label>
+              <textarea
+                id="description"
+                className={inputCls}
+                rows={4}
+                value={form.description}
+                onChange={set("description")}
+              />
             </div>
             <div>
               <label className={labelCls}>Barrio</label>
@@ -243,48 +289,174 @@ export default function Publish() {
               />
             </div>
             <div>
-              <label className={labelCls}>Dirección</label>
-              <input className={inputCls} value={form.address} onChange={set("address")} />
+              <label className={labelCls} htmlFor="address">
+                Dirección
+              </label>
+              <input id="address" className={inputCls} value={form.address} onChange={set("address")} />
             </div>
             <div>
-              <label className={labelCls}>Precio</label>
-              <input className={inputCls} type="number" min="0" step="0.01" value={form.price} onChange={set("price")} />
+              <label className={labelCls} htmlFor="price">
+                Precio
+              </label>
+              <input
+                id="price"
+                className={inputCls}
+                type="number"
+                min="0"
+                step="0.01"
+                value={form.price}
+                onChange={set("price")}
+              />
             </div>
             <div>
-              <label className={labelCls}>Moneda</label>
-              <select className={inputCls} value={form.currency} onChange={set("currency")}>
+              <label className={labelCls} htmlFor="currency">
+                Moneda
+              </label>
+              <select id="currency" className={inputCls} value={form.currency} onChange={set("currency")}>
                 <option value="ARS">Pesos (ARS)</option>
                 <option value="USD">Dólares (USD)</option>
               </select>
             </div>
             <div>
-              <label className={labelCls}>Expensas (opcional)</label>
-              <input className={inputCls} type="number" min="0" step="0.01" value={form.monthly_fees} onChange={set("monthly_fees")} />
+              <label className={labelCls} htmlFor="monthly_fees">
+                Expensas (opcional)
+              </label>
+              <input
+                id="monthly_fees"
+                className={inputCls}
+                type="number"
+                min="0"
+                step="0.01"
+                value={form.monthly_fees}
+                onChange={set("monthly_fees")}
+              />
             </div>
             <div>
-              <label className={labelCls}>Superficie m² (opcional)</label>
-              <input className={inputCls} type="number" min="0" step="0.01" value={form.surface_m2} onChange={set("surface_m2")} />
+              <label className={labelCls} htmlFor="surface_m2">
+                Superficie m² (opcional)
+              </label>
+              <input
+                id="surface_m2"
+                className={inputCls}
+                type="number"
+                min="0"
+                step="0.01"
+                value={form.surface_m2}
+                onChange={set("surface_m2")}
+              />
             </div>
             <div>
-              <label className={labelCls}>Dormitorios</label>
-              <input className={inputCls} type="number" min="0" value={form.bedrooms} onChange={set("bedrooms")} />
+              <label className={labelCls} htmlFor="bedrooms">
+                Dormitorios
+              </label>
+              <input
+                id="bedrooms"
+                className={inputCls}
+                type="number"
+                min="0"
+                value={form.bedrooms}
+                onChange={set("bedrooms")}
+              />
             </div>
             <div>
-              <label className={labelCls}>Baños</label>
-              <input className={inputCls} type="number" min="0" value={form.bathrooms} onChange={set("bathrooms")} />
+              <label className={labelCls} htmlFor="bathrooms">
+                Baños
+              </label>
+              <input
+                id="bathrooms"
+                className={inputCls}
+                type="number"
+                min="0"
+                value={form.bathrooms}
+                onChange={set("bathrooms")}
+              />
             </div>
             <div>
-              <label className={labelCls}>Latitud (opcional, para el mapa)</label>
-              <input className={inputCls} type="number" step="any" value={form.latitude} onChange={set("latitude")} />
+              <label className={labelCls} htmlFor="latitude">
+                Latitud (opcional, para el mapa)
+              </label>
+              <input
+                id="latitude"
+                className={inputCls}
+                type="number"
+                step="any"
+                value={form.latitude}
+                onChange={set("latitude")}
+              />
             </div>
             <div>
-              <label className={labelCls}>Longitud (opcional)</label>
-              <input className={inputCls} type="number" step="any" value={form.longitude} onChange={set("longitude")} />
+              <label className={labelCls} htmlFor="longitude">
+                Longitud (opcional)
+              </label>
+              <input
+                id="longitude"
+                className={inputCls}
+                type="number"
+                step="any"
+                value={form.longitude}
+                onChange={set("longitude")}
+              />
             </div>
           </div>
         )}
 
         {step === 2 && (
+          <>
+            <div>
+              <label className={labelCls} htmlFor="photos">
+                Fotos <span className="font-normal text-gray-500">(opcional, recomendado: la primera será la portada)</span>
+              </label>
+              <input
+                id="photos"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                multiple
+                onChange={togglePhoto}
+                disabled={photos.length >= MAX_PHOTOS}
+                className="block w-full text-sm text-gray-600 file:mr-4 file:rounded-md file:border-0 file:bg-brand-50 file:text-brand-700 file:px-4 file:py-2 file:font-medium hover:file:bg-brand-100 disabled:opacity-50"
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                JPG, PNG o WebP, hasta {MAX_PHOTO_MB} MB cada una · máximo {MAX_PHOTOS} fotos ·{" "}
+                {photos.length} agregada{photos.length === 1 ? "" : "s"}.
+              </p>
+              {photoError && <p className="mt-1 text-xs text-amber-700">{photoError}</p>}
+            </div>
+
+            {photos.length > 0 ? (
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                {photos.map((p, i) => (
+                  <div key={`${p.name}-${p.size}-${i}`} className="relative group">
+                    <img
+                      src={previews[i]}
+                      alt={p.name}
+                      className="h-20 w-full object-cover rounded-md border border-gray-200"
+                    />
+                    {i === 0 && (
+                      <span className="absolute top-1 left-1 bg-brand-600 text-white text-[10px] px-1.5 py-0.5 rounded">
+                        Portada
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => removePhoto(i)}
+                      title="Quitar foto"
+                      className="absolute top-1 right-1 h-6 w-6 rounded-full bg-red-600 text-white text-xs font-bold hover:bg-red-700"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500">
+                Las publicaciones con fotos reciben muchas más consultas. Podés agregarlas ahora o más tarde desde
+                «Mis publicaciones».
+              </p>
+            )}
+          </>
+        )}
+
+        {step === 3 && (
           <>
             <div>
               <span className={labelCls}>¿Qué servicios tiene?</span>
@@ -304,8 +476,16 @@ export default function Publish() {
             </div>
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
-                <label className={labelCls}>WhatsApp de contacto (opcional)</label>
-                <input className={inputCls} placeholder="5493457000000" value={form.contact_whatsapp} onChange={set("contact_whatsapp")} />
+                <label className={labelCls} htmlFor="contact_whatsapp">
+                  WhatsApp de contacto (opcional)
+                </label>
+                <input
+                  id="contact_whatsapp"
+                  className={inputCls}
+                  placeholder="5493457000000"
+                  value={form.contact_whatsapp}
+                  onChange={set("contact_whatsapp")}
+                />
               </div>
               <label className="flex items-center gap-2 self-end border rounded-md px-3 py-2 cursor-pointer hover:border-brand-500">
                 <input type="checkbox" checked={form.allow_whatsapp} onChange={set("allow_whatsapp")} className="w-4 h-4 text-brand-600" />
@@ -318,31 +498,8 @@ export default function Publish() {
           </>
         )}
 
-        {step === 3 && (
+        {step === 4 && (
           <>
-            <div>
-              <label className={labelCls}>Fotos (JPG, PNG o WebP, máx. 8 MB c/u)</label>
-              <input
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                multiple
-                onChange={togglePhoto}
-                className="block w-full text-sm text-gray-600 file:mr-4 file:rounded-md file:border-0 file:bg-brand-50 file:text-brand-700 file:px-4 file:py-2 file:font-medium hover:file:bg-brand-100"
-              />
-              {photos.length > 0 && (
-                <div className="mt-3 grid grid-cols-3 sm:grid-cols-5 gap-2">
-                  {photos.map((p, i) => (
-                    <img
-                      key={`${p.name}-${p.size}`}
-                      src={previews[i]}
-                      alt={p.name}
-                      className="h-20 w-full object-cover rounded-md border border-gray-200"
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-
             <div className="border rounded-md p-4 bg-gray-50 text-sm space-y-1">
               <p className="font-semibold text-gray-700">Revisá antes de publicar:</p>
               <p>
@@ -356,6 +513,28 @@ export default function Publish() {
               </p>
               <p className="text-gray-500">{form.title}</p>
             </div>
+
+            {photos.length > 0 ? (
+              <div>
+                <p className="text-sm text-gray-600 mb-2">
+                  {photos.length} foto{photos.length === 1 ? "" : "s"} lista{photos.length === 1 ? "" : "s"} para subir.
+                </p>
+                <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                  {photos.map((p, i) => (
+                    <img
+                      key={`${p.name}-${p.size}-${i}`}
+                      src={previews[i]}
+                      alt={p.name}
+                      className="h-16 w-full object-cover rounded-md border border-gray-200"
+                    />
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-amber-700">
+                No agregaste fotos. Podés publicar igual y sumarlas después desde «Mis publicaciones».
+              </p>
+            )}
           </>
         )}
 

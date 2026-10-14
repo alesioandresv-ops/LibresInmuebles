@@ -33,10 +33,12 @@ export function deleteProperty(id) {
   return apiFetch(`/properties/${id}`, { method: "DELETE" });
 }
 
-export function uploadImage(id, file) {
+// Las fotos pueden pesar hasta 8 MB y subirse desde conexiones lentas: damos más
+// margen que el timeout general (40 s) para evitar abortos a mitad de la subida.
+export function uploadImage(id, file, timeout = 120000) {
   const form = new FormData();
   form.append("file", file);
-  return apiFetch(`/properties/${id}/images`, { method: "POST", body: form });
+  return apiFetch(`/properties/${id}/images`, { method: "POST", body: form, timeout });
 }
 
 export function setPrimaryImage(id, imageId) {

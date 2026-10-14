@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   deleteImage,
   getProperty,
@@ -47,6 +47,7 @@ const emptyForm = {
 export default function EditProperty() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   usePageTitle("Editar publicación");
 
   const [form, setForm] = useState(emptyForm);
@@ -55,6 +56,7 @@ export default function EditProperty() {
   const [saving, setSaving] = useState(false);
   const [busyImage, setBusyImage] = useState(null);
   const [error, setError] = useState(null);
+  const [photoWarning, setPhotoWarning] = useState(location.state?.photoWarning ?? null);
 
   useEffect(() => {
     let active = true;
@@ -149,22 +151,34 @@ export default function EditProperty() {
 
   async function handleAddPhotos(e) {
     const files = Array.from(e.target.files ?? []);
+    e.target.value = "";
     const invalid = files.filter((f) => !isValidPhoto(f));
     const valid = files.filter(isValidPhoto);
     if (invalid.length > 0) {
-      setError(`Se omitieron ${invalid.length} archivos: solo JPG, PNG o WebP de hasta ${MAX_PHOTO_MB} MB.`);
+      setError(`Se omitieron ${invalid.length} archivo(s): solo JPG, PNG o WebP de hasta ${MAX_PHOTO_MB} MB.`);
     } else {
       setError(null);
     }
     if (valid.length === 0) return;
+
+    const failed = [];
     for (const file of valid) {
       try {
         const img = await uploadImage(id, file);
         setImages((prev) => [...prev, img]);
-      } catch (err) {
-        setError(err.message ?? "No se pudo subir la foto.");
-        break;
+      } catch {
+        failed.push(file.name);
       }
+    }
+
+    if (failed.length > 0) {
+      setError(
+        `No se ${failed.length === 1 ? "pudo subir" : "pudieron subir"} ${
+          failed.length === 1 ? `la foto "${failed[0]}"` : `${failed.length} fotos (${failed.join(", ")})`
+        }. Reintentá en un momento.`
+      );
+    } else {
+      setPhotoWarning(null);
     }
   }
 
@@ -209,6 +223,14 @@ export default function EditProperty() {
     <div className="max-w-3xl mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold text-brand-900">Editar publicación</h1>
       <p className="text-gray-600 mt-1 mb-6">Actualizá los datos de tu inmueble y su galería de fotos.</p>
+
+      {photoWarning && (
+        <div className="mb-4">
+          <Alert kind="warning" onClose={() => setPhotoWarning(null)}>
+            {photoWarning}
+          </Alert>
+        </div>
+      )}
 
       {error && (
         <div className="mb-4">
