@@ -31,6 +31,7 @@ export default function Register() {
   const navigate = useNavigate();
   const location = useLocation();
   const [form, setForm] = useState(initialState);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -50,6 +51,7 @@ export default function Register() {
   const acceptedDeclaration = form.declaration_titular;
   const canSubmit =
     acceptedDeclaration &&
+    acceptedTerms &&
     validation.emailValid &&
     validation.passwordValid &&
     form.first_name.trim().length > 0 &&
@@ -153,7 +155,7 @@ export default function Register() {
           </select>
         </div>
 
-        <div>
+        <div className="space-y-3">
           <label
             className={`flex items-start gap-3 text-sm rounded-md border p-3 cursor-pointer transition ${
               acceptedDeclaration ? "border-brand-200 bg-brand-50" : "border-gray-200 hover:border-brand-300"
@@ -176,6 +178,31 @@ export default function Register() {
               Aceptá la declaración para habilitar el botón «Crear cuenta».
             </p>
           )}
+          <label className="flex items-start gap-3 text-sm rounded-md border border-gray-200 p-3 cursor-pointer hover:border-brand-300 transition">
+            <input
+              type="checkbox"
+              required
+              checked={acceptedTerms}
+              onChange={(e) => setAcceptedTerms(e.target.checked)}
+              className="mt-0.5 w-4 h-4 text-brand-600"
+            />
+            <span>
+              Leí y acepto los{" "}
+              <a href="/terminos" target="_blank" rel="noopener noreferrer" className="text-brand-600 hover:underline">
+                Términos y Condiciones
+              </a>{" "}
+              y la{" "}
+              <a href="/privacidad" target="_blank" rel="noopener noreferrer" className="text-brand-600 hover:underline">
+                Política de Privacidad
+              </a>{" "}
+              de LibreInmuebles.
+            </span>
+          </label>
+          {!acceptedTerms && (
+            <p className="mt-1 text-xs text-amber-700">
+              Aceptá los Términos y Condiciones para habilitar el botón «Crear cuenta».
+            </p>
+          )}
         </div>
 
         <button
@@ -186,7 +213,7 @@ export default function Register() {
           {submitting ? "Creando cuenta…" : "Crear cuenta"}
         </button>
         <p className="text-xs text-gray-400 text-center">
-          El botón se habilita cuando la declaración esté aceptada y todos los datos sean válidos.
+          El botón se habilita cuando aceptes los Términos y Condiciones, la declaración y todos los datos sean válidos.
         </p>
       </form>
     </div>

@@ -81,7 +81,7 @@ export default function Footer() {
           </p>
           <p className="mt-2 flex items-center gap-2 text-sm text-brand-200">
             <Mail size={16} className="text-accent-400" />
-            contacto@libreinmuebles.com
+            soportelibreinmuebles@gmail.com
           </p>
           <div className="mt-5 flex items-center gap-3">
             {SOCIALS.map(({ label, icon: Icon }) => (
@@ -102,12 +102,12 @@ export default function Footer() {
         <div className="app-container flex flex-col items-center justify-between gap-3 py-5 text-xs text-brand-300 sm:flex-row">
           <p>© {new Date().getFullYear()} LibreInmuebles — Dueño Directo</p>
           <nav className="flex items-center gap-5">
-            <a href="#" className="transition hover:text-white">
+            <Link to="/terminos" className="transition hover:text-white">
               Términos y condiciones
-            </a>
-            <a href="#" className="transition hover:text-white">
+            </Link>
+            <Link to="/privacidad" className="transition hover:text-white">
               Política de privacidad
-            </a>
+            </Link>
           </nav>
         </div>
       </div>

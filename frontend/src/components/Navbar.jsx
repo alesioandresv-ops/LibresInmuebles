@@ -99,6 +99,12 @@ export default function Navbar() {
           <NavLink to="/legal" className={({ isActive }) => (isActive ? linkActive : linkBase)}>
             Contratos
           </NavLink>
+          <NavLink to="/terminos" className={({ isActive }) => (isActive ? linkActive : linkBase)}>
+            Términos
+          </NavLink>
+          <NavLink to="/privacidad" className={({ isActive }) => (isActive ? linkActive : linkBase)}>
+            Privacidad
+          </NavLink>
           <NavLink
             to="/publicar"
             className={
@@ -195,6 +201,12 @@ export default function Navbar() {
             </NavLink>
             <NavLink to="/legal" onClick={() => setOpen(false)} className="rounded-md px-3 py-2.5 text-sm font-medium hover:bg-brand-50">
               Contratos
+            </NavLink>
+            <NavLink to="/terminos" onClick={() => setOpen(false)} className="rounded-md px-3 py-2.5 text-sm font-medium hover:bg-brand-50">
+              Términos y Condiciones
+            </NavLink>
+            <NavLink to="/privacidad" onClick={() => setOpen(false)} className="rounded-md px-3 py-2.5 text-sm font-medium hover:bg-brand-50">
+              Política de Privacidad
             </NavLink>
             {isOwner && (
               <NavLink to="/mis-publicaciones" onClick={() => setOpen(false)} className="rounded-md px-3 py-2.5 text-sm font-medium hover:bg-brand-50">

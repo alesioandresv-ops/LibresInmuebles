@@ -14,6 +14,8 @@ import EditProperty from "./pages/EditProperty.jsx";
 import Messages from "./pages/Messages.jsx";
 import Moderation from "./pages/Moderation.jsx";
 import Legal from "./pages/Legal.jsx";
+import Terms from "./pages/Terms.jsx";
+import Privacy from "./pages/Privacy.jsx";
 import NotFound from "./pages/NotFound.jsx";
 
 export default function App() {
@@ -24,6 +26,8 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/legal" element={<Legal />} />
+          <Route path="/terminos" element={<Terms />} />
+          <Route path="/privacidad" element={<Privacy />} />
           <Route path="/properties/:id" element={<PropertyDetail />} />
           <Route
             path="/mensajes"
