@@ -21,7 +21,8 @@ La guía técnica de referencia (arquitectura, comandos, gotchas de deploy) vive
 
 - **Producción**: API en `https://libreinmuebles-api.onrender.com` (Render Free) · SPA en `https://libres-inmuebles.vercel.app` (Vercel) · Postgres + Storage en Supabase.
 - **Repo**: monorepo `backend/` (FastAPI + SQLAlchemy 2 + Alembic) y `frontend/` (React 19 + Vite + Tailwind v4 + Vitest). Rama `main`.
-- **Último estado verificado** (25/09/2026): **91 tests backend verdes** · **38 tests frontend verdes** · `npm run build` OK.
+- **Último estado verificado** (14/10/2026): **91 tests backend verdes** · **42 tests frontend verdes** · `npm run build` OK.
+- **Páginas legales** (14/10/2026): `/terminos` y `/privacidad` publicadas con los datos del titular cargados (ver sesión 7).
 - **Commits en curso (25/09/2026)**: el usuario **aprobó** el rediseño y pidió commits separados. `constants.js` fusiona el helper `operationPeriod` (rediseño) con el catálogo de barrios, así que el reparto pragmático es: (1) `feat: rediseño visual LibreInmuebles 2.0` (incluye catálogo + `NeighborhoodPicker`, que nacieron junto al rediseño), (2) `feat: SEO básico (robots, sitemap, JSON-LD)`, (3) `docs: bitácora, AGENTS y README`. Objetivo: cada commit **compila y pasa tests**.
 - **Servidores de dev** (si están levantados): API en `http://localhost:8000`, frontend en `http://localhost:5173`. Recordar **Ctrl+F5** tras cambios estáticos (cache del navegador).
 
@@ -106,6 +107,32 @@ Para apuntar a búsquedas como "departamentos/alquileres en Paso de los Libres":
 - `Home.jsx`: bloque de texto SEO real bajo el CTA (qué encontrar, barrios mencionados, dueño directo sin comisiones).
 - `PropertyDetail.jsx`: **JSON-LD `RealEstateListing`** por propiedad (precio, moneda, dirección, localidad/región, superficie, dormitorios/baños, imágenes, fecha), inyectado dinámico con limpieza al desmontar.
 
+### 7. Términos y Condiciones, Privacidad y arreglo de fotos al publicar (14/10/2026)
+
+**Páginas legales.** Se crearon `/terminos` y `/privacidad` (React, contenido en español, jurisdicción en Paso de los Libres, Corrientes; la Política se apoya en la Ley 25.326). Los TyC aclaran explícitamente que LibreInmuebles **no es inmobiliaria, corredor ni intermediario**, que solo el Propietario es responsable del contenido, y las reglas de moderación y de indemnidad.
+
+- Datos del titular cargados: **Alesio Andrés Vieira Nogueira**, 5ta Sección Ombucito, Chacra 155, Paso de los Libres, Corrientes, CUIL 20-43.275.996-3.
+- Correo de soporte: **soportelibreinmuebles@gmail.com** (decisión: Gmail dedicado por ahora; sin dominio propio aún).
+- Render de markdown propio y sin dependencias: `frontend/src/lib/markdown.js` (títulos, listas, negritas y enlaces).
+- Enlaces agregados en `Navbar.jsx` (desktop y móvil) y `Footer.jsx`; el footer ahora usa el correo real (antes `contacto@libreinmuebles.com`, un dominio inexistente).
+- `Register.jsx`: checkbox **obligatorio** "Leí y acepto los Términos y la Política de Privacidad" (estado `acceptedTerms` separado del de la declaración de titularidad).
+- Se creó `docs/manual-usuario.md` (manual para usuarios) y se corrigió en todos lados la URL del sitio a `https://libres-inmuebles.vercel.app` (antes apuntaba a un dominio inexistente).
+
+**Falla reportada: "no se pueden agregar fotos al publicar".** Diagnóstico: el asistente de publicar **sí** permitía fotos, pero solo en el **último** paso; además, si fallaba la subida de una foto al publicar, el código **borraba la publicación recién creada** y se perdían todos los datos. Eso explicaba la experiencia (publicar sin foto y agregarla después editando). Se verificó el flujo original con un test temporal (pasaba) y se confirmó que el bundle desplegado en Vercel coincidía con el local.
+
+Arreglo aplicado:
+
+1. Nuevo orden de pasos: Operación y tipo → Datos del inmueble → **Fotos** → Servicios y contacto → Revisión (las fotos ya no quedan al final).
+2. Previsualización de fotos con botón para **quitar** cada una y contador; se avisa si un archivo se omite (tipo/tamaño) o si se supera el máximo de 6.
+3. **Nunca se borra la publicación si falla una foto**: la publicación se crea igual y, ante fallos de subida, se redirige a editar con aviso (sin perder los datos cargados). Solo se muestra error si falla la creación.
+4. `uploadImage` con timeout propio de **120 s** (antes usaba el general de 40 s), para fotos grandes en conexiones lentas.
+5. `Alert` con variante nueva `warning`; se agregaron `htmlFor`/`id` en los campos del formulario.
+6. `EditProperty.jsx`: muestra el aviso recibido y, al agregar fotos, continúa con las demás si una falla (antes cortaba en el primer error).
+
+Tests: +4 en `frontend/src/pages/Publish.test.jsx` (flujo con foto, quitar foto, no borrar ante fallo de subida, rechazo de tipo no permitido) → **42 tests frontend**.
+
+**Nota de proceso (encoding):** una edición inicial con PowerShell (`Get-Content`/`Set-Content`) corrompió los acentos de un archivo legal; se detectó y se reescribieron los archivos en UTF-8. Evitar editar código con acentos usando ese método.
+
 ---
 
 ## Decisiones registradas
@@ -119,6 +146,8 @@ Para apuntar a búsquedas como "departamentos/alquileres en Paso de los Libres":
 | Sep 2026 | CTA: transparencia alfa real (no fade a color) | Imagen regenerada con RGBA de grado creciente |
 | Sep 2026 | Monetización: solo brainstorm | No hay cambios de código |
 | Sep 2026 | SEO: robots + sitemap + JSON-LD, sin prerender | Espera verificación manual en GSC |
+| Oct 2026 | Legal en español con jurisdicción local; TyC aclaran que la plataforma no es inmobiliaria | Sin dominio propio: correo dedicado `soportelibreinmuebles@gmail.com`; conviene revisión de un abogado antes de escalar |
+| Oct 2026 | Ante fallo de subida de foto al publicar, **no** borrar la publicación | Se conserva el trabajo del usuario; se lo redirige a editar para reintentar |
 
 ---
 
@@ -127,3 +156,6 @@ Para apuntar a búsquedas como "departamentos/alquileres en Paso de los Libres":
 - [ ] Aprobación visual del rediseño → **commit** (incluye catálogo, SEO, `AGENTS.md`, `README.md` e imágenes).
 - [ ] Verificar dominio en **Google Search Console** y pedir indexación (necesita el código que genera GSC).
 - [ ] Si más adelante se monetiza: definir pasarela de pago y modelo de destacados.
+- [ ] Revisión de los textos legales por un abogado antes de escalar (recomendado).
+- [ ] Evaluar dominio propio (`libreinmuebles.com.ar`) y migrar el correo a `soporte@…`.
+- [ ] Commit/push de las páginas legales, `docs/manual-usuario.md` y el arreglo de fotos (cambios aún sin commitear).
