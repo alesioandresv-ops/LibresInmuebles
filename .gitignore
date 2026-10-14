@@ -19,6 +19,9 @@ frontend/dist/
 frontend/.env.local
 frontend/dev.log
 
+# Imágenes de origen (fuera del repo; las optimizadas viven en frontend/public/images)
+assets/
+
 # Editor / OS
 .idea/
 .vscode/
